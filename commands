@@ -15,10 +15,6 @@ if [[ $1 == memcached:* ]]; then
             APP_EXISTS=false
         fi
     fi
-    if [[ ! -d "$PLUGIN_PATH/link" ]]; then
-        echo "Link plugin not found... Did you install it from https://github.com/rlaneve/dokku-link?"
-        exit 1
-    fi
 
     PLUGIN_NAME="memcached"
     PLUGIN_ALIAS="memcache"
@@ -103,14 +99,20 @@ case "$1" in
         fi
         CONTAINER_NAME="${PLUGIN_NAME}_$3"
 
-        # figure out IP to set env var
         ID=$(docker ps -a | grep "$CONTAINER_NAME" |  awk '{print $1}')
-        #IP=$(docker inspect $ID | grep IPAddress | cut -d '"' -f 4)
-
-        dokku link:create "$APP" "$CONTAINER_NAME" "$PLUGIN_ALIAS"
-        dokku config:set "$APP" MEMCACHE_SCHEME=""
-        echo
-        echo "-----> $APP linked to $CONTAINER_NAME container"
+        if [[ -n "$ID" ]]; then
+            IP=$(docker inspect $ID | grep IPAddress | awk '{ print $2 }' | tr -d ',"')
+            MEMCACHED_SERVER="MEMCACHED_SERVER=$IP:$MEMCACHE_PORT"
+            ENV_FILE="$DOKKU_ROOT/$APP/ENV"
+            if [[ ! -f $ENV_FILE ]]; then
+                touch $ENV_FILE
+            fi
+            ENV_TEMP=$(cat "${ENV_FILE}" | sed "/^export MEMCACHED_SERVER=/ d")
+            ENV_TEMP="${ENV_TEMP}\nexport ${MEMCACHED_SERVER}"
+            echo -e "$ENV_TEMP" | sed '/^$/d' | sort > $ENV_FILE
+            echo
+            echo "-----> $APP linked to $CONTAINER_NAME container"
+        fi
     fi
     ;;
 

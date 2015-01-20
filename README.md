@@ -11,10 +11,6 @@ git clone https://github.com/jlachowski/dokku-memcached-plugin memcached
 dokku plugins-install
 ```
 
-This plugin also requires the dokku-link plugin to be installed:
-https://github.com/rlaneve/dokku-link
-
-
 Commands
 --------
 ```
